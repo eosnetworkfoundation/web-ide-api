@@ -1,0 +1,6 @@
+**/node_modules
+dist/
+**/**/*.log
+tmp_projects/*
+.env
+.idea
