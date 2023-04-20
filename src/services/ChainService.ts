@@ -11,8 +11,6 @@ import BuildService from './BuildService';
 import ecc from 'eosjs-ecc';
 
 // @ts-ignore
-const testsAccount:string = process.env.TESTNET_TESTS_ACCOUNT;
-// @ts-ignore
 const accountCreator:string = process.env.TESTNET_ACCOUNT;
 // @ts-ignore
 const accountCreatorPrivateKey:string = process.env.TESTNET_ACCOUNT_KEY;
@@ -347,7 +345,7 @@ export default class ChainService {
                     }],
                     data: {
                         payer: accountCreator,
-                        receiver: testsAccount,
+                        receiver: senderAccount,
                         days: 1,
                         net_frac: 100000000000,
                         cpu_frac: 100000000000,
