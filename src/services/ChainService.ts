@@ -94,6 +94,21 @@ export default class ChainService {
         const accountName = await this.findAvailableJungleAccountName();
         const result = await jungleApi.transact({
             actions: [{
+                account: 'eosio',
+                name: 'powerup',
+                authorization: [{
+                    actor: accountCreator,
+                    permission: 'active',
+                }],
+                data: {
+                    payer: accountCreator,
+                    receiver: accountCreator,
+                    days: 1,
+                    net_frac: 100000000000,
+                    cpu_frac: 100000000000,
+                    max_payment: '1.0000 EOS',
+                },
+            },{
                 account: 'eosio.faucet',
                 name: 'create',
                 authorization: [{
@@ -169,42 +184,9 @@ export default class ChainService {
         });
     }
 
-    static async setJungleContract(account:string, id:string): Promise<boolean|string> {
-        let wasm:any;
-        let abi:any;
-
-        try {
-            wasm = fs.readFileSync(`tmp_projects/${id}/${id}.wasm`).toString('hex');
-        } catch (error) {
-            throw new Error("You must build your project before deploying it");
-        }
+    static async trySetJungleContract(account:string, wasm:any, abi:any, tries:number = 0): Promise<boolean|string> {
         const estimatedRam = ((wasm.length/2) * 10) + 100;
-
-        const buffer = new Serialize.SerialBuffer({
-            textEncoder: jungleApi.textEncoder,
-            textDecoder: jungleApi.textDecoder,
-        })
-
-        try {
-            abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
-        } catch (error) {
-            throw new Error("You must build your project before deploying it");
-        }
-
-        const abiDefinitions = jungleApi.abiTypes.get('abi_def')
-
-        // @ts-ignore
-        abi = abiDefinitions.fields.reduce(
-            (acc, { name: fieldName }) =>
-                Object.assign(acc, { [fieldName]: acc[fieldName] || [] }),
-            abi
-        )
-        // @ts-ignore
-        abiDefinitions.serialize(buffer, abi)
-        const serializedAbiHexString = Buffer.from(buffer.asUint8Array()).toString('hex')
-
-
-        return await jungleApi.transact({
+        const result = await jungleApi.transact({
             actions: [{
                 account: 'eosio',
                 name: 'powerup',
@@ -269,7 +251,7 @@ export default class ChainService {
                 }],
                 data: {
                     account: account,
-                    abi: serializedAbiHexString,
+                    abi,
                 },
             }]
         }, {
@@ -282,6 +264,52 @@ export default class ChainService {
             console.error("error deploying contract to jungle", error);
             return error;
         });
+
+        if(result === true){
+            return true;
+        }
+
+        if(tries < 3){
+            return await this.trySetJungleContract(account, wasm, abi, tries + 1);
+        }
+
+        return result;
+    }
+
+    static async setJungleContract(account:string, id:string): Promise<boolean|string> {
+        let wasm:any;
+        let abi:any;
+
+        try {
+            wasm = fs.readFileSync(`tmp_projects/${id}/${id}.wasm`).toString('hex');
+        } catch (error) {
+            throw new Error("You must build your project before deploying it");
+        }
+
+        const buffer = new Serialize.SerialBuffer({
+            textEncoder: jungleApi.textEncoder,
+            textDecoder: jungleApi.textDecoder,
+        })
+
+        try {
+            abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
+        } catch (error) {
+            throw new Error("You must build your project before deploying it");
+        }
+
+        const abiDefinitions = jungleApi.abiTypes.get('abi_def')
+
+        // @ts-ignore
+        abi = abiDefinitions.fields.reduce(
+            (acc, { name: fieldName }) =>
+                Object.assign(acc, { [fieldName]: acc[fieldName] || [] }),
+            abi
+        )
+        // @ts-ignore
+        abiDefinitions.serialize(buffer, abi)
+        const serializedAbiHexString = Buffer.from(buffer.asUint8Array()).toString('hex')
+
+        return this.trySetJungleContract(account, wasm, serializedAbiHexString);
     }
 
     static async deployProjectToTestnet(network:string, id:string, build:boolean): Promise<ChainStatus> {
