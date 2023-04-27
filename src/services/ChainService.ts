@@ -323,8 +323,11 @@ export default class ChainService {
             }
 
             const newJungleAccount = await this.createJungleAccount();
+            await new Promise(resolve => setTimeout(resolve, 1000));
             await this.addCodePermissionToJungleAccount(newJungleAccount);
+            await new Promise(resolve => setTimeout(resolve, 1000));
             const result = await this.setJungleContract(newJungleAccount, id);
+
 
             if(result === true){
                 let abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
