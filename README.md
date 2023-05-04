@@ -1,4 +1,4 @@
-# Overflow IDE API
+# EOS Web IDE API
 
 This is the API for the [Web IDE UI](https://github.com/eosnetworkfoundation/web-ide-ui)
 
