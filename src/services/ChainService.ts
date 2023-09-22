@@ -1,41 +1,47 @@
 import BuildQueueService from "./BuildQueueService";
 
 require('dotenv').config();
-import fs from 'fs';
-import {Api, JsonRpc, RpcError, Serialize} from 'eosjs';
-import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
-import { TextDecoder, TextEncoder } from 'util';
-import "isomorphic-fetch";
-import BuildService from './BuildService';
+
 // @ts-ignore
 import ecc from 'eosjs-ecc';
-
 // @ts-ignore
 const accountCreator:string = process.env.TESTNET_ACCOUNT;
 // @ts-ignore
 const accountCreatorPrivateKey:string = process.env.TESTNET_ACCOUNT_KEY;
 const publicKey = ecc.privateToPublic(accountCreatorPrivateKey);
-const signatureProvider = new JsSignatureProvider([accountCreatorPrivateKey]);
 
-const newaccountPermission = {
-    threshold: 1,
-    keys: [],
-    accounts: [
-        {
-            permission: {
-                actor: accountCreator,
-                permission: 'active'
+
+import { Session, Serializer, ABI } from "@wharfkit/session"
+import { WalletPluginPrivateKey } from "@wharfkit/wallet-plugin-privatekey"
+import {TransactPluginResourceProvider} from '@wharfkit/transact-plugin-resource-provider'
+
+const chain = {
+    id: "73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d",
+    url: "https://jungle4.greymass.com", // https://jungle4.cryptolions.io:443
+}
+
+const walletPlugin = new WalletPluginPrivateKey(accountCreatorPrivateKey)
+
+import fs from 'fs';
+import "isomorphic-fetch";
+
+const sessionOpts = {
+    transactPlugins: [
+        new TransactPluginResourceProvider({
+            endpoints: {
+                '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d':
+                    'https://jungle4.greymass.com',
             },
-            weight: 1
-        }
+            allowFees: true,
+        }),
     ],
-    waits: []
 };
-
-const JUNGLE_API = process.env.JUNGLE_API || "https://jungle4.cryptolions.io:443";
-const jungleRpc = new JsonRpc(JUNGLE_API, { fetch });
-// @ts-ignore
-const jungleApi = new Api({ rpc:jungleRpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
+const session = new Session({
+    actor: accountCreator,
+    permission: "active",
+    chain,
+    walletPlugin,
+}, sessionOpts)
 
 export class ChainStatus {
     constructor(public success:boolean, public data: any) {}
@@ -45,7 +51,7 @@ export default class ChainService {
 
     static spamFaucet() {
         setInterval(async () => {
-            const result = await jungleApi.transact({
+            const result = await session.transact({
                 actions: [{
                     account: 'eosio.faucet',
                     name: 'send',
@@ -58,9 +64,6 @@ export default class ChainService {
                         nonce: null
                     },
                 }]
-            }, {
-                blocksBehind: 3,
-                expireSeconds: 30,
             }).catch((error:any) => {});
         }, 1000);
     }
@@ -75,7 +78,7 @@ export default class ChainService {
     }
 
     static async jungleAccountExists(accountName:string): Promise<boolean> {
-        return await jungleRpc.get_account(accountName).then((result:any) => {
+        return await session.client.v1.chain.get_account(accountName).then((result:any) => {
             return true;
         }).catch((error:any) => {
             return false;
@@ -92,8 +95,16 @@ export default class ChainService {
 
     static async createJungleAccount(): Promise<string> {
         const accountName = await this.findAvailableJungleAccountName();
-        const result = await jungleApi.transact({
+        const result = await session.transact({
             actions: [{
+                account: 'greymassnoop',
+                name: 'noop',
+                authorization: [{
+                    actor: accountCreator,
+                    permission: 'active',
+                }],
+                data: {}
+            },{
                 account: 'eosio',
                 name: 'powerup',
                 authorization: [{
@@ -120,17 +131,22 @@ export default class ChainService {
                     key: publicKey
                 },
             }]
-        }, {
-            blocksBehind: 3,
-            expireSeconds: 30,
         });
         return accountName;
     }
 
     static async addCodePermissionToJungleAccount(account:string){
         // Add eosio.code permission to active permission
-        const result = await jungleApi.transact({
+        const result = await session.transact({
             actions: [{
+                account: 'greymassnoop',
+                name: 'noop',
+                authorization: [{
+                    actor: accountCreator,
+                    permission: 'active',
+                }],
+                data: {}
+            },{
                 account: 'eosio',
                 name: 'powerup',
                 authorization: [{
@@ -178,30 +194,20 @@ export default class ChainService {
                     }
                 }
             }]
-        }, {
-            blocksBehind: 3,
-            expireSeconds: 30,
         });
     }
 
     static async trySetJungleContract(account:string, wasm:any, abi:any, tries:number = 0): Promise<boolean|string> {
-        const estimatedRam = ((wasm.length/2) * 10) + 100;
-        const result = await jungleApi.transact({
+        const estimatedRam = (wasm.length * 10) + JSON.stringify(abi).length + 100;
+        const result = await session.transact({
             actions: [{
-                account: 'eosio',
-                name: 'powerup',
+                account: 'greymassnoop',
+                name: 'noop',
                 authorization: [{
                     actor: accountCreator,
                     permission: 'active',
                 }],
-                data: {
-                    payer: accountCreator,
-                    receiver: account,
-                    days: 1,
-                    net_frac: 100000000000,
-                    cpu_frac: 100000000000,
-                    max_payment: '2.0000 EOS',
-                },
+                data: {}
             },{
                 account: 'eosio',
                 name: 'powerup',
@@ -211,7 +217,7 @@ export default class ChainService {
                 }],
                 data: {
                     payer: accountCreator,
-                    receiver: accountCreator,
+                    receiver: account,
                     days: 1,
                     net_frac: 100000000000,
                     cpu_frac: 100000000000,
@@ -251,14 +257,13 @@ export default class ChainService {
                 }],
                 data: {
                     account: account,
-                    abi,
+                    abi: Serializer.encode({
+                        object: abi,
+                        type: ABI
+                    }),
                 },
             }]
-        }, {
-            blocksBehind: 3,
-            expireSeconds: 30,
         }).then((result:any) => {
-            console.log("contract deployed to jungle", result);
             return true;
         }).catch((error:any) => {
             console.error("error deploying contract to jungle", error);
@@ -286,30 +291,13 @@ export default class ChainService {
             throw new Error("You must build your project before deploying it");
         }
 
-        const buffer = new Serialize.SerialBuffer({
-            textEncoder: jungleApi.textEncoder,
-            textDecoder: jungleApi.textDecoder,
-        })
-
         try {
             abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
         } catch (error) {
             throw new Error("You must build your project before deploying it");
         }
 
-        const abiDefinitions = jungleApi.abiTypes.get('abi_def')
-
-        // @ts-ignore
-        abi = abiDefinitions.fields.reduce(
-            (acc, { name: fieldName }) =>
-                Object.assign(acc, { [fieldName]: acc[fieldName] || [] }),
-            abi
-        )
-        // @ts-ignore
-        abiDefinitions.serialize(buffer, abi)
-        const serializedAbiHexString = Buffer.from(buffer.asUint8Array()).toString('hex')
-
-        return this.trySetJungleContract(account, wasm, serializedAbiHexString);
+        return this.trySetJungleContract(account, wasm, abi);
     }
 
     static async deployProjectToTestnet(network:string, id:string, build:boolean): Promise<ChainStatus> {
@@ -364,10 +352,19 @@ export default class ChainService {
         if(network !== "jungle"){
             return new ChainStatus(false, "network not supported");
         }
+        // REALLY hacky way to estimate possible RAM usage
+        const estimatedRam = JSON.stringify(actionData.params).length + 1000;
         try {
-            console.log('contract', contract);
-            return await jungleApi.transact({
+            return await session.transact({
                 actions: [{
+                    account: 'greymassnoop',
+                    name: 'noop',
+                    authorization: [{
+                        actor: accountCreator,
+                        permission: 'active',
+                    }],
+                    data: {}
+                },{
                     account: 'eosio',
                     name: 'powerup',
                     authorization: [{
@@ -383,6 +380,18 @@ export default class ChainService {
                         max_payment: '2.0000 EOS',
                     },
                 },{
+                    account: 'eosio',
+                    name: 'buyrambytes',
+                    authorization: [{
+                        actor: accountCreator,
+                        permission: 'active',
+                    }],
+                    data: {
+                        payer: accountCreator,
+                        receiver: senderAccount,
+                        bytes: estimatedRam,
+                    },
+                },{
                     account: contract,
                     name: actionData.action,
                     authorization: [{
@@ -391,11 +400,7 @@ export default class ChainService {
                     }],
                     data: actionData.params,
                 }]
-            }, {
-                blocksBehind: 3,
-                expireSeconds: 30,
             }).then(result => {
-                console.log("contract deployed to jungle", result);
                 return new ChainStatus(true, result);
             }).catch((error:any) => {
                 console.error("error interacting with contract", error);
@@ -412,7 +417,7 @@ export default class ChainService {
             return new ChainStatus(false, "network not supported");
         }
         try {
-            const result = await jungleApi.rpc.get_table_rows({
+            const result = await session.client.v1.chain.get_table_rows({
                 json: true,
                 code: contract,
                 scope: scope,

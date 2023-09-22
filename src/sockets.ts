@@ -33,6 +33,7 @@ export default (ws:any) => {
 }
 
 const save = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid save message", json);
     if(!json.data.id){
         json.data.id = `contract-${uuid()}`;
     }
@@ -45,6 +46,7 @@ const save = async (ws:any, json:any): Promise<void> => {
 }
 
 const load = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid load message", json);
     try {
         const project = fs.readFileSync(`tmp_projects/${json.data}/${json.data}.json`, 'utf8');
         ws.send(JSON.stringify({type: 'loaded', data: project}));
@@ -55,6 +57,7 @@ const load = async (ws:any, json:any): Promise<void> => {
 }
 
 const build = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data || !json.data.id) return console.error("invalid build message", json);
     const {id} = json.data;
 
     // Only 1 cpp file for now
@@ -69,7 +72,9 @@ const build = async (ws:any, json:any): Promise<void> => {
 }
 
 const deploy = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid deploy message", json);
     const {network, id, build} = json.data;
+    if(!network || !id || !build) return console.error("invalid deploy message", json);
 
     try {
         ChainService.deployProjectToTestnet(network, id, build).then((result:any) => {
@@ -81,7 +86,9 @@ const deploy = async (ws:any, json:any): Promise<void> => {
 }
 
 const interact = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid interact message", json);
     const {network, contract, actionData, senderAccount} = json.data;
+    if(!network || !contract || !actionData || !senderAccount) return console.error("invalid interact message", json);
 
     try {
         ChainService.interactWithContract(network, contract, actionData, senderAccount).then((result:any) => {
@@ -92,7 +99,9 @@ const interact = async (ws:any, json:any): Promise<void> => {
     }
 }
 const getTableData = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid table-data message", json);
     const {network, contract, table, scope} = json.data;
+    if(!network || !contract || !table || !scope) return console.error("invalid table-data message", json);
 
     try {
         ChainService.getTableData(network, contract, table, scope).then((result:any) => {
@@ -103,7 +112,9 @@ const getTableData = async (ws:any, json:any): Promise<void> => {
     }
 }
 const downloadProject = async (ws:any, json:any): Promise<void> => {
+    if(!json || !json.data) return console.error("invalid download-project message", json);
     const {id} = json.data;
+    if(!id) return console.error("invalid download-project message", json);
 
     try {
         BuildService.downloadProject(id).then((result:any) => {
