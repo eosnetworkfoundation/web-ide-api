@@ -106,7 +106,7 @@ export default class ChainService {
                     days: 1,
                     net_frac: 100000000000,
                     cpu_frac: 100000000000,
-                    max_payment: '1.0000 EOS',
+                    max_payment: '2.0000 EOS',
                 },
             },{
                 account: 'eosio.faucet',
@@ -143,7 +143,7 @@ export default class ChainService {
                     days: 1,
                     net_frac: 100000000000,
                     cpu_frac: 100000000000,
-                    max_payment: '1.0000 EOS',
+                    max_payment: '2.0000 EOS',
                 },
             },{
                 account: 'eosio',
