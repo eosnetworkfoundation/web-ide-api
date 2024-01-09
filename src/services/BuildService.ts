@@ -78,6 +78,23 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
   timeTaken = Date.now() - timeTaken;
   console.log(`Time taken to build contract: ${timeTaken}ms`);
 
+  // export memory from wasm
+  // something is not working with piping in the wat on my env, so using a temp file
+  const export_tmp = await execute(
+      `wasm2wat tmp_projects/${id}/${id}.wasm | sed -e 's|(memory |(memory (export "memory") |' > tmp_projects/${id}/${id}.wat`
+  ).then(x => true).catch(err => {
+    console.error("Error exporting memory", err);
+    return false;
+  })
+  if(export_tmp) {
+    await execute(
+        `wat2wasm -o tmp_projects/${id}/${id}.wasm tmp_projects/${id}/${id}.wat`
+    ).catch(err => {
+      console.error("Error exporting memory 2", err);
+    })
+    try { await execute(`rm tmp_projects/${id}/${id}.wat`); } catch (error) {}
+  }
+
   const success = buildResult === "";
   if(success) {
     // remove any old zips
