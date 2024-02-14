@@ -26,6 +26,7 @@ const buildContractFromProject = async (project:any, id:string|null = null): Pro
     if(!id) id = Math.round(Math.random() * 10000000000000) + 100 + "-VSCODE";
 
     // Make new directory for project
+    await rimraf(`tmp_projects/${id}/src`);
     try { fs.mkdirSync(`tmp_projects/${id}/`, { recursive: true }); } catch (error) {}
     try { fs.mkdirSync(`tmp_projects/${id}/src`, { recursive: true }); } catch (error) {}
     fs.writeFileSync(`tmp_projects/${id}/${id}.json`, JSON.stringify(project));
@@ -63,16 +64,15 @@ const findContractName = (file:any) => {
 
 const buildContractFromSource = async (project:any, id:string): Promise<BuildStatus> => {
 
-
     const hasOnlyOneContract = project.files.filter((x:any) => x.name.endsWith(".cpp")).length === 1;
-    const hasEntryContracts = project.files.filter((x:any) => x.name.endsWith(".entry.cpp") && x.path === "").length > 0;
+    const hasEntryContracts = project.files.filter((x:any) => x.name.endsWith(".entry.cpp")).length > 0;
 
     if(!hasOnlyOneContract && !hasEntryContracts){
         return new BuildStatus(false, "Must have only one contract file in the root or an entry file (<name>.entry.cpp).");
     }
 
     const buildableFiles = (() => {
-        if(hasEntryContracts) return project.files.filter((x:any) => x.name.endsWith(".entry.cpp") && x.path === "");
+        if(hasEntryContracts) return project.files.filter((x:any) => x.name.endsWith(".entry.cpp"));
         return project.files.filter((x:any) => x.name.endsWith(".cpp"));
     })();
 
@@ -134,7 +134,7 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
         console.error("error zipping files", error);
     }
 
-    // await rimraf(`tmp_projects/${id}/src`);
+    await rimraf(`tmp_projects/${id}/src`);
 
     return new BuildStatus(true, id);
 }

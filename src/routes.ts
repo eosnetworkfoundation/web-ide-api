@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import BuildService from "@src/services/BuildService";
+import fs from "fs";
 
 const router = Router();
 
@@ -10,12 +11,26 @@ router.get('/', async (req, res) => {
 
 router.get('/download/wasm/:id', async (req, res) => {
     const {id} = req.params;
-    res.download(`tmp_projects/${id}/${id}.wasm`);
+    const allFilesInBuildFolder = fs.readdirSync(`tmp_projects/${id}/build`);
+    const wasmFile = allFilesInBuildFolder.find((file:any)  => file.endsWith('.wasm'));
+    res.download(`tmp_projects/${id}/build/${wasmFile}`);
 });
 
 router.get('/download/abi/:id', async (req, res) => {
     const {id} = req.params;
-    res.download(`tmp_projects/${id}/${id}.abi`);
+    const allFilesInBuildFolder = fs.readdirSync(`tmp_projects/${id}/build`);
+    const abiFile = allFilesInBuildFolder.find((file:any) => file.endsWith('.abi'));
+    res.download(`tmp_projects/${id}/build/${abiFile}`);
+});
+
+router.get('/download/wasm/:id/:contract', async (req, res) => {
+    const {id, contract} = req.params;
+    res.download(`tmp_projects/${id}/build/${contract}.wasm`);
+});
+
+router.get('/download/abi/:id/:contract', async (req, res) => {
+    const {id, contract} = req.params;
+    res.download(`tmp_projects/${id}/build/${contract}.abi`);
 });
 
 router.get('/download/zip/:id', async (req, res) => {
