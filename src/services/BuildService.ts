@@ -84,7 +84,7 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
     let timeTaken = Date.now();
     for(let file of buildableFiles){
         const contractName = findContractName(file);
-        if(!contractName) return new BuildStatus(false, `No contract name found for: ${file.name}`);
+        if(!contractName) return new BuildStatus(false, `No contract name found for: ${file.name}. You can try adding a comment to your cpp entry file with the contract name like this: '//contractName:<name>'`);
 
         const fileName = file.name.replace(".entry.cpp", "").replace(".cpp", "");
 
