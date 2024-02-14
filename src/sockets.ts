@@ -73,11 +73,11 @@ const build = async (ws:any, json:any): Promise<void> => {
 
 const deploy = async (ws:any, json:any): Promise<void> => {
     if(!json || !json.data) return console.error("invalid deploy message", json);
-    const {network, id, build} = json.data;
-    if(!network || !id || !build) return console.error("invalid deploy message", json);
+    const {network, id, contract, build} = json.data;
+    if(!network || !id || !contract) return console.error("invalid deploy message", json);
 
     try {
-        ChainService.deployProjectToTestnet(network, id, build).then((result:any) => {
+        ChainService.deployProjectToTestnet(network, id, contract, build).then((result:any) => {
             ws.send(JSON.stringify({type: 'deploy-status', data: result}));
         });
     } catch (error) {

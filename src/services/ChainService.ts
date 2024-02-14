@@ -281,18 +281,18 @@ export default class ChainService {
         return result;
     }
 
-    static async setJungleContract(account:string, id:string): Promise<boolean|string> {
+    static async setJungleContract(account:string, id:string, contract:string): Promise<boolean|string> {
         let wasm:any;
         let abi:any;
 
         try {
-            wasm = fs.readFileSync(`tmp_projects/${id}/${id}.wasm`).toString('hex');
+            wasm = fs.readFileSync(`tmp_projects/${id}/build/${contract}.wasm`).toString('hex');
         } catch (error) {
             throw new Error("You must build your project before deploying it");
         }
 
         try {
-            abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
+            abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/build/${contract}.abi`, 'utf8'))
         } catch (error) {
             throw new Error("You must build your project before deploying it");
         }
@@ -300,7 +300,7 @@ export default class ChainService {
         return this.trySetJungleContract(account, wasm, abi);
     }
 
-    static async deployProjectToTestnet(network:string, id:string, build:boolean): Promise<ChainStatus> {
+    static async deployProjectToTestnet(network:string, id:string, contract:string, build:boolean): Promise<ChainStatus> {
         if(network !== "jungle"){
             return new ChainStatus(false, "network not supported");
         }
@@ -310,15 +310,18 @@ export default class ChainService {
                 if (!built.success) return new ChainStatus(false, built.data);
             }
 
+            // remove .cpp or .entry.cpp
+            contract = contract.replace(/\.entry\.cpp/g, "").replace(/\.cpp/g, "");
+
             const newJungleAccount = await this.createJungleAccount();
             await new Promise(resolve => setTimeout(resolve, 1000));
             await this.addCodePermissionToJungleAccount(newJungleAccount);
             await new Promise(resolve => setTimeout(resolve, 1000));
-            const result = await this.setJungleContract(newJungleAccount, id);
+            const result = await this.setJungleContract(newJungleAccount, id, contract);
 
 
             if(result === true){
-                let abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/${id}.abi`, 'utf8'))
+                let abi = JSON.parse(fs.readFileSync(`tmp_projects/${id}/build/${contract}.abi`, 'utf8'))
                 const details = {
                     account: newJungleAccount,
                     actions: abi.actions.map((action:any) => {
