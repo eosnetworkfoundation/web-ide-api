@@ -63,7 +63,8 @@ const findContractName = (file:any) => {
 
 const buildContractFromSource = async (project:any, id:string): Promise<BuildStatus> => {
 
-    const hasOnlyOneContract = project.files.filter((x:any) => x.name.endsWith(".cpp") && x.path === "").length === 1;
+
+    const hasOnlyOneContract = project.files.filter((x:any) => x.name.endsWith(".cpp")).length === 1;
     const hasEntryContracts = project.files.filter((x:any) => x.name.endsWith(".entry.cpp") && x.path === "").length > 0;
 
     if(!hasOnlyOneContract && !hasEntryContracts){
@@ -72,7 +73,7 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
 
     const buildableFiles = (() => {
         if(hasEntryContracts) return project.files.filter((x:any) => x.name.endsWith(".entry.cpp") && x.path === "");
-        return project.files.filter((x:any) => x.name.endsWith(".cpp") && x.path === "");
+        return project.files.filter((x:any) => x.name.endsWith(".cpp"));
     })();
 
     let compiledFiles = [];
@@ -87,7 +88,7 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
 
         const fileName = file.name.replace(".entry.cpp", "").replace(".cpp", "");
 
-        let buildResult:string = await execute(`cdt-cpp -I include -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/src/${file.name} --contract=${contractName} --abigen --no-missing-ricardian-clause`).catch(x => x) as string;
+        let buildResult:string = await execute(`cdt-cpp -I tmp_projects/${id}/src/include -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/src/${file.name} --contract=${contractName} --abigen --no-missing-ricardian-clause`).catch(x => x) as string;
         if(buildResult !== "") {
             if(!localPath) {
                 localPath = (await execute('pwd')) + `/tmp_projects/${id}`;
@@ -133,7 +134,7 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
         console.error("error zipping files", error);
     }
 
-    await rimraf(`tmp_projects/${id}/src`);
+    // await rimraf(`tmp_projects/${id}/src`);
 
     return new BuildStatus(true, id);
 }
