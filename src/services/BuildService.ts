@@ -42,6 +42,8 @@ const buildContractFromProject = async (project:any, id:string|null = null): Pro
     return buildContractFromSource(project, id);
 }
 
+const executeOptions = { timeout: 60 * 2 * 1000 };
+
 
 const findContractName = (file:any) => {
     try {
@@ -79,7 +81,9 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
     let compiledFiles = [];
 
     try { fs.mkdirSync(`tmp_projects/${id}/build`, { recursive: true }); } catch (error) {}
-    try { await execute(`rm tmp_projects/${id}/build/*`); } catch (error) {}
+    try { await execute(`rm tmp_projects/${id}/build/*`, executeOptions); } catch (error) {
+        console.error("Error cleaning build directory", error);
+    }
 
     let timeTaken = Date.now();
     for(let file of buildableFiles){
@@ -88,9 +92,9 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
 
         const fileName = file.name.replace(".entry.cpp", "").replace(".cpp", "");
 
-        let buildResult:string = await execute(`cdt-cpp -I tmp_projects/${id}/src/include -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/src/${file.name} --contract=${contractName} --abigen --no-missing-ricardian-clause`, {
-            timeout: 60 * 2 * 1000
-        }).catch(x => x) as string;
+        let buildResult:string = await execute(`cdt-cpp -I tmp_projects/${id}/src/include -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/src/${file.name} --contract=${contractName} --abigen --no-missing-ricardian-clause`,
+            executeOptions
+        ).catch(x => x) as string;
         if(buildResult !== "") {
             if(!localPath) {
                 localPath = (await execute('pwd')) + `/tmp_projects/${id}`;
@@ -104,18 +108,22 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
         // export memory from wasm
         // something is not working with piping in the wat on my env, so using a temp file
         const exportTmp = await execute(
-            `wasm2wat tmp_projects/${id}/build/${fileName}.wasm | sed -e 's|(memory |(memory (export "memory") |' > tmp_projects/${id}/build/${fileName}.wat`
+            `wasm2wat tmp_projects/${id}/build/${fileName}.wasm | sed -e 's|(memory |(memory (export "memory") |' > tmp_projects/${id}/build/${fileName}.wat`,
+            executeOptions
         ).then(x => true).catch(err => {
             console.error("Error exporting memory", err);
             return false;
         })
         if(exportTmp) {
             await execute(
-                `wat2wasm -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/build/${fileName}.wat`
+                `wat2wasm -o tmp_projects/${id}/build/${fileName}.wasm tmp_projects/${id}/build/${fileName}.wat`,
+                executeOptions
             ).catch(err => {
                 console.error("Error exporting memory 2", err);
             })
-            try { await execute(`rm tmp_projects/${id}/build/${fileName}.wat`); } catch (error) {}
+            try { await execute(`rm tmp_projects/${id}/build/${fileName}.wat`, executeOptions); } catch (error) {
+                console.error("Error cleaning wat file", error);
+            }
         }
 
     }
@@ -129,9 +137,11 @@ const buildContractFromSource = async (project:any, id:string): Promise<BuildSta
 
 
     // remove any old zips
-    try { await execute(`rm tmp_projects/${id}/*.zip`); } catch (error) {}
+    try { await execute(`rm tmp_projects/${id}/*.zip`, executeOptions); } catch (error) {
+        console.error("Error cleaning old zips", error);
+    }
     try {
-        const zipped = await execute(`cd tmp_projects/${id} && zip --junk-paths ${id}.zip -r ./build`);
+        const zipped = await execute(`cd tmp_projects/${id} && zip --junk-paths ${id}.zip -r ./build`, executeOptions);
     } catch (error) {
         console.error("error zipping files", error);
     }
@@ -156,11 +166,15 @@ const downloadProject = async (id:string) => {
         });
 
         // zip everything in the src folder into a new zip
-        await execute(`cd tmp_projects/${id} && zip project.zip -r src`);
-        await execute(`rm -rf tmp_projects/${id}/src`).catch(() => {});
+        await execute(`cd tmp_projects/${id} && zip project.zip -r src`, executeOptions);
+        await execute(`rm -rf tmp_projects/${id}/src`, executeOptions).catch(err =>{
+            console.error("Error cleaning src folder", err);
+        });
 
         setTimeout(() => {
-            execute(`rm tmp_projects/${id}/project.zip`).catch(() => {});
+            execute(`rm tmp_projects/${id}/project.zip`, executeOptions).catch(err => {
+                console.error("Error cleaning project zip", err);
+            });
         }, 60000);
 
         return new BuildStatus(true, id);
