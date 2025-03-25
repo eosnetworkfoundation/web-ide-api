@@ -11,14 +11,9 @@ const accountCreatorPrivateKey:string = process.env.TESTNET_ACCOUNT_KEY;
 const publicKey = ecc.privateToPublic(accountCreatorPrivateKey);
 
 
-import { Session, Serializer, ABI } from "@wharfkit/session"
+import {Session, Serializer, ABI, Chains} from "@wharfkit/session"
 import { WalletPluginPrivateKey } from "@wharfkit/wallet-plugin-privatekey"
 import {TransactPluginResourceProvider} from '@wharfkit/transact-plugin-resource-provider'
-
-const chain = {
-    id: "73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d",
-    url: "https://jungle4.greymass.com", // https://jungle4.cryptolions.io:443
-}
 
 const walletPlugin = new WalletPluginPrivateKey(accountCreatorPrivateKey)
 
@@ -27,21 +22,40 @@ import "isomorphic-fetch";
 
 const sessionOpts = {
     transactPlugins: [
-        new TransactPluginResourceProvider({
-            endpoints: {
-                '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d':
-                    'https://jungle4.greymass.com',
-            },
-            allowFees: true,
-        }),
+        new TransactPluginResourceProvider(),
     ],
 };
 const session = new Session({
     actor: accountCreator,
     permission: "active",
-    chain,
+    chain: Chains.Jungle4,
     walletPlugin,
 }, sessionOpts)
+
+const powerup = (account:any) => [{
+    account: 'greymassnoop',
+    name: 'noop',
+    authorization: [{
+        actor: accountCreator,
+        permission: 'active',
+    }],
+    data: {}
+},{
+    account: 'eosio',
+    name: 'powerup',
+    authorization: [{
+        actor: accountCreator,
+        permission: 'active',
+    }],
+    data: {
+        payer: accountCreator,
+        receiver: account,
+        days: 1,
+        net_frac: 100000000000,
+        cpu_frac: 100000000000,
+        max_payment: '4.0000 EOS',
+    },
+}];
 
 export class ChainStatus {
     constructor(public success:boolean, public data: any) {}
@@ -65,7 +79,7 @@ export default class ChainService {
                     },
                 }]
             }).catch((error:any) => {});
-        }, 1000 * 60);
+        }, 1000);
     }
 
     static generateEosAccountName(): string {
@@ -154,7 +168,7 @@ export default class ChainService {
     static async trySetJungleContract(account:string, wasm:any, abi:any, tries:number = 0): Promise<boolean|string> {
         const estimatedRam = (wasm.length * 10) + JSON.stringify(abi).length + 100;
         const result = await session.transact({
-            actions: [{
+            actions: [...powerup(account),{
                 account: 'eosio',
                 name: 'buyrambytes',
                 authorization: [{
