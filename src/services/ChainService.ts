@@ -110,7 +110,7 @@ export default class ChainService {
     static async createJungleAccount(): Promise<string> {
         const accountName = await this.findAvailableJungleAccountName();
         const result = await session.transact({
-            actions: [{
+            actions: [...powerup(accountName),{
                 account: 'eosio.faucet',
                 name: 'create',
                 authorization: [{
@@ -129,7 +129,7 @@ export default class ChainService {
     static async addCodePermissionToJungleAccount(account:string){
         // Add eosio.code permission to active permission
         const result = await session.transact({
-            actions: [{
+            actions: [...powerup(account),{
                 account: 'eosio',
                 name: 'updateauth',
                 authorization: [{
@@ -304,7 +304,7 @@ export default class ChainService {
         const estimatedRam = JSON.stringify(actionData.params).length + 1000;
         try {
             return await session.transact({
-                actions: [{
+                actions: [...powerup(senderAccount),{
                     account: 'eosio',
                     name: 'buyrambytes',
                     authorization: [{
