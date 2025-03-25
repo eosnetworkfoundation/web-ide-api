@@ -97,29 +97,6 @@ export default class ChainService {
         const accountName = await this.findAvailableJungleAccountName();
         const result = await session.transact({
             actions: [{
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {}
-            },{
-                account: 'eosio',
-                name: 'powerup',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {
-                    payer: accountCreator,
-                    receiver: accountCreator,
-                    days: 1,
-                    net_frac: 100000000000,
-                    cpu_frac: 100000000000,
-                    max_payment: '2.0000 EOS',
-                },
-            },{
                 account: 'eosio.faucet',
                 name: 'create',
                 authorization: [{
@@ -139,29 +116,6 @@ export default class ChainService {
         // Add eosio.code permission to active permission
         const result = await session.transact({
             actions: [{
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {}
-            },{
-                account: 'eosio',
-                name: 'powerup',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {
-                    payer: accountCreator,
-                    receiver: account,
-                    days: 1,
-                    net_frac: 100000000000,
-                    cpu_frac: 100000000000,
-                    max_payment: '2.0000 EOS',
-                },
-            },{
                 account: 'eosio',
                 name: 'updateauth',
                 authorization: [{
@@ -201,29 +155,6 @@ export default class ChainService {
         const estimatedRam = (wasm.length * 10) + JSON.stringify(abi).length + 100;
         const result = await session.transact({
             actions: [{
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {}
-            },{
-                account: 'eosio',
-                name: 'powerup',
-                authorization: [{
-                    actor: accountCreator,
-                    permission: 'active',
-                }],
-                data: {
-                    payer: accountCreator,
-                    receiver: account,
-                    days: 1,
-                    net_frac: 100000000000,
-                    cpu_frac: 100000000000,
-                    max_payment: '2.0000 EOS',
-                },
-            },{
                 account: 'eosio',
                 name: 'buyrambytes',
                 authorization: [{
@@ -360,29 +291,6 @@ export default class ChainService {
         try {
             return await session.transact({
                 actions: [{
-                    account: 'greymassnoop',
-                    name: 'noop',
-                    authorization: [{
-                        actor: accountCreator,
-                        permission: 'active',
-                    }],
-                    data: {}
-                },{
-                    account: 'eosio',
-                    name: 'powerup',
-                    authorization: [{
-                        actor: accountCreator,
-                        permission: 'active',
-                    }],
-                    data: {
-                        payer: accountCreator,
-                        receiver: senderAccount,
-                        days: 1,
-                        net_frac: 100000000000,
-                        cpu_frac: 100000000000,
-                        max_payment: '2.0000 EOS',
-                    },
-                },{
                     account: 'eosio',
                     name: 'buyrambytes',
                     authorization: [{

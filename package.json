@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "@greymass/eosio-resources": "^0.9.0",
-    "@wharfkit/session": "^1.0.0",
-    "@wharfkit/transact-plugin-resource-provider": "^1.0.0",
+    "@wharfkit/session": "^1.5.1",
+    "@wharfkit/transact-plugin-resource-provider": "^1.1.1",
     "@wharfkit/wallet-plugin-privatekey": "^1.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
