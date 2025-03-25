@@ -4,7 +4,8 @@ import { uuid } from 'uuidv4';
 import ChainService from "@src/services/ChainService";
 import BuildQueueService from "@src/services/BuildQueueService";
 
-export default (ws:any) => {
+export default (ws:any, req:any) => {
+    console.log('connected', req.headers['x-forwarded-for']);
     //connection is up, let's add a simple simple event
     ws.on('message', (message: string) => {
 

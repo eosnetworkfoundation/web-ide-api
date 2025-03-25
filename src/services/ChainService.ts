@@ -65,7 +65,7 @@ export default class ChainService {
                     },
                 }]
             }).catch((error:any) => {});
-        }, 1000);
+        }, 1000 * 60);
     }
 
     static generateEosAccountName(): string {
