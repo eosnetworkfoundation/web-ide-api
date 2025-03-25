@@ -51,7 +51,7 @@ const powerup = (account:any) => [{
         payer: accountCreator,
         receiver: account,
         days: 1,
-        net_frac: 100000000000,
+        net_frac: 10000000000,
         cpu_frac: 100000000000,
         max_payment: '4.0000 EOS',
     },
