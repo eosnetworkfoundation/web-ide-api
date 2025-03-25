@@ -110,7 +110,7 @@ export default class ChainService {
     static async createJungleAccount(): Promise<string> {
         const accountName = await this.findAvailableJungleAccountName();
         const result = await session.transact({
-            actions: [...powerup(accountName),{
+            actions: [{
                 account: 'eosio.faucet',
                 name: 'create',
                 authorization: [{
